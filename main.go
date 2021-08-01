@@ -49,20 +49,22 @@ func WebComponent(w http.ResponseWriter, r *http.Request) {
 	if username == "" {
 		username = "guest"
 	}
-	innerHTML := fmt.Sprintf(`<h1>Hello %s</h1>`, username)
 	w.Header().Add("Content-Type", "text/javascript; charset=UTF-8")
 	w.Write([]byte(fmt.Sprintf(`
 		class LoggedIn extends HTMLElement {
 			constructor() {
 				super()
+				const username = "%s"
 				const shadow = this.attachShadow({ mode: 'open' });
 				const container = document.createElement('div');
-				container.innerHTML = "%s";
+				container.innerHTML = "<h1>Hello </h1>" +
+					"<h2> Name: " + username + "</h2>" +
+					"<h2> Reversed: " + username.split("").reverse().join("") + "</h2>";
 				shadow.appendChild(container)
 			}
 		}
 		customElements.define('logged-in', LoggedIn)
-		`, innerHTML)))
+		`, username)))
 }
 
 func main() {
