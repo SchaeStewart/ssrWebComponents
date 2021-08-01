@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -36,12 +37,41 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
 }
 
+func WebComponent(w http.ResponseWriter, r *http.Request) {
+	cookies := r.Cookies()
+	username := ""
+	for _, cookie := range cookies {
+		if cookie.Name == "username" {
+			username = cookie.Value
+			break
+		}
+	}
+	if username == "" {
+		username = "guest"
+	}
+	innerHTML := fmt.Sprintf(`<h1>Hello %s</h1>`, username)
+	w.Header().Add("Content-Type", "text/javascript; charset=UTF-8")
+	w.Write([]byte(fmt.Sprintf(`
+		class LoggedIn extends HTMLElement {
+			constructor() {
+				super()
+				const shadow = this.attachShadow({ mode: 'open' });
+				const container = document.createElement('div');
+				container.innerHTML = "%s";
+				shadow.appendChild(container)
+			}
+		}
+		customElements.define('logged-in', LoggedIn)
+		`, innerHTML)))
+}
+
 func main() {
 	r := mux.NewRouter()
 
 	r.Handle("/", http.FileServer(http.FS(indexHTML)))
 	r.HandleFunc("/login", Login).Methods("POST")
 	r.HandleFunc("/logout", Logout).Methods("POST")
+	r.HandleFunc("/webcomponent.js", WebComponent).Methods("GET")
 
 	log.Println("server starting on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
